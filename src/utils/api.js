@@ -113,7 +113,7 @@ export const handleSignUp = async (
   } catch (err) {
     return {
       status: "error",
-      message: err.response?.data,
+      message: err,
     };
   }
 };
