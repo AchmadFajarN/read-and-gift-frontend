@@ -14,12 +14,13 @@ import EditBookReview from "./components/EditBookReview";
 import ProfilePage from "./components/ProfilePage";
 import MyRequestsPage from "./components/MyRequestPage";
 import RequestManagePage from "./components/RequestManagePage";
+import { Toaster } from "react-hot-toast";
 
 function App() {
   return (
     <div className="min-h-screen bg-gray-50">
       <Header />
-
+      <Toaster position="top-right" reverseOrder={false} />
       <Routes>
         <Route path="/" element={<Homepage />} />
         <Route path="/login" element={<Login />} />
@@ -40,11 +41,14 @@ function App() {
             </PrivateRoute>
           }
         />
-        <Route path="edit-review/:id" element={
-          <PrivateRoute>
-            <EditBookReview />
-          </PrivateRoute>
-        } />
+        <Route
+          path="edit-review/:id"
+          element={
+            <PrivateRoute>
+              <EditBookReview />
+            </PrivateRoute>
+          }
+        />
         <Route path="/manage-requests" element={<RequestManagePage />} />
         <Route path="/donations" element={<DonatePage />} />
         <Route path="/my-requests" element={<MyRequestsPage />} />
