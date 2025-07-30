@@ -1,7 +1,7 @@
 // api.js
 import axios from "axios";
 
-const BASE_URL = import.meta.env.VITE_API_URL;
+const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 const api = axios.create({
   baseURL: BASE_URL,
@@ -147,11 +147,11 @@ export const getReviewBook = async (page, limit, title = "") => {
     );
     console.log("reviews books:", response);
 
-    const result = response.data.data.result;
+    const { reviewsWithExtras, totalItems } = response.data.data.result;
     return {
       status: "success",
-      data: result,
-      totalItem: result.length,
+      data: reviewsWithExtras,
+      totalItem: totalItems,
     };
   } catch (err) {
     return {
