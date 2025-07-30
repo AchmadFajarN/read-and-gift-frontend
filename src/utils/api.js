@@ -1,7 +1,7 @@
 // api.js
 import axios from "axios";
 
-const BASE_URL = import.meta.env.VITE_API_URL;
+const BASE_URL = "http://localhost:5555";
 
 const api = axios.create({
   baseURL: BASE_URL,
@@ -113,7 +113,7 @@ export const handleSignUp = async (
   } catch (err) {
     return {
       status: "error",
-      message: err,
+      message: err.response?.data,
     };
   }
 };
@@ -145,10 +145,13 @@ export const getReviewBook = async (page, limit, title = "") => {
     const response = await api.get(
       `/review?page=${page}&limit=${limit}&title=${title}`
     );
-    const { result } = response.data.data;
+    console.log("reviews books:", response);
+
+    const { reviewsWithExtras, totalItems } = response.data.data.result;
     return {
       status: "success",
-      data: result,
+      data: reviewsWithExtras,
+      totalItem: totalItems,
     };
   } catch (err) {
     return {
@@ -171,7 +174,12 @@ export const addReview = async (
   },
   file
 ) => {
+  let reviewId = null;
+
   try {
+    console.log("addReview");
+
+    // Step 1: Create review
     const response = await api.post("/review", {
       title,
       author,
@@ -183,27 +191,61 @@ export const addReview = async (
       description,
     });
 
-    const { reviewId } = response.data.data;
+    reviewId = response.data.data.reviewId;
 
+    // Step 2: Upload image if file exists
     if (file) {
       const formData = new FormData();
       formData.append("image", file);
+      console.log('Uploading image...', file.size);
 
-      await api.post(`/review/${reviewId}/img`, formData, {
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
-      });
+      try {
+        await api.post(`/review/${reviewId}/img`, formData, {
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+        });
+      } catch (imageError) {
+        console.log('Image upload error:', imageError.response);
+
+        // If image upload fails for any reason, delete the review
+        try {
+          await deleteReview(reviewId);
+
+          // Return specific error message based on the type of error
+          if (imageError.response?.data?.error === 'Request Entity Too Large') {
+            return {
+              status: "error",
+              message: "Ukuran file terlalu besar",
+            };
+          }
+
+          return {
+            status: "error",
+            message: "Upload gambar gagal",
+          };
+        } catch (deleteError) {
+          console.error('Failed to delete review after image upload failure:', deleteError);
+          return {
+            status: "error",
+            message: "Review gagal di tambahkan",
+          };
+        }
+      }
     }
 
     return {
       status: "success",
-      message: "review berhasil ditambahkan",
+      message: "Review berhasil ditambahkan" + (file ? " dengan gambar" : ""),
+      reviewId: reviewId,
     };
+
   } catch (err) {
+    console.log('Review creation error:', err.response);
+
     return {
       status: "error",
-      message: err.response?.data?.message,
+      message: err.response?.data?.message || "Gagal menambahkan review",
     };
   }
 };
@@ -252,10 +294,12 @@ export const postDonation = async (
 export const getBookDonate = async (page, limit) => {
   try {
     const response = await api.get(`/donations?page=${page}&limit=${limit}`);
-    const { books } = response.data.data;
+    const { books, totalItems } = response.data.data;
+    console.log('getBookDonate', response);
     return {
       status: "success",
       data: books,
+      totalItem: totalItems
     };
   } catch (err) {
     return {
@@ -284,18 +328,18 @@ export const getReviewById = async (id) => {
 export const getBookByUserId = async (id) => {
   try {
     const response = await api.get(`/review/user/${id}`);
-    const result = response.data.data.result
+    const result = response.data.data.result;
     return {
       status: 'success',
       review: result
-    }
-  } catch(err) {
+    };
+  } catch (err) {
     return {
       status: 'fail',
       message: err.message
-    }
+    };
   }
-}
+};
 
 export const deleteReview = async (id) => {
   try {
@@ -510,17 +554,17 @@ export const updateDonationStatus = async (recipientDonationId, status) => {
   }
 };
 
-export const getUserById = async(id) => {
+export const getUserById = async (id) => {
   try {
     const res = await api.get(`/user/${id}`);
     return {
       status: 'success',
       data: res.data.data.result
-    }
-  } catch(err) {
+    };
+  } catch (err) {
     return {
       message: err.response
-    }
+    };
   }
 }
 
